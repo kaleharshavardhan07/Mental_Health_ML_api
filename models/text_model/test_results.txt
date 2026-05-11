@@ -1,0 +1,57 @@
+============================================================
+  TEST RESULTS
+============================================================
+  Loss=1.3328  Mean AUC=0.6113
+
+  AUC per disease:
+    depression  : 0.7045
+    anxiety     : 0.4716
+    ocd         : 0.7826
+    adhd        : 0.4863
+
+  Classification Report (threshold-tuned)
+
+-- DEPRESSION (thr=0.60) --
+              precision    recall  f1-score   support
+
+ no_disorder       0.97      0.66      0.78        44
+has_disorder       0.38      0.90      0.53        10
+
+    accuracy                           0.70        54
+   macro avg       0.67      0.78      0.66        54
+weighted avg       0.86      0.70      0.74        54
+
+
+-- ANXIETY (thr=0.65) --
+              precision    recall  f1-score   support
+
+ no_disorder       0.81      0.58      0.68        45
+has_disorder       0.14      0.33      0.19         9
+
+    accuracy                           0.54        54
+   macro avg       0.47      0.46      0.43        54
+weighted avg       0.70      0.54      0.60        54
+
+
+-- OCD (thr=0.65) --
+              precision    recall  f1-score   support
+
+ no_disorder       0.97      0.78      0.87        46
+has_disorder       0.41      0.88      0.56         8
+
+    accuracy                           0.80        54
+   macro avg       0.69      0.83      0.71        54
+weighted avg       0.89      0.80      0.82        54
+
+
+-- ADHD (thr=0.65) --
+              precision    recall  f1-score   support
+
+ no_disorder       0.88      0.74      0.80        47
+has_disorder       0.14      0.29      0.19         7
+
+    accuracy                           0.69        54
+   macro avg       0.51      0.52      0.50        54
+weighted avg       0.78      0.69      0.72        54
+
+============================================================

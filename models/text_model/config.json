@@ -1,0 +1,14 @@
+{
+  "DISEASES": [
+    "depression",
+    "anxiety",
+    "ocd",
+    "adhd"
+  ],
+  "MAX_LEN": 256,
+  "MODEL_NAME": "distilbert-base-uncased",
+  "HIDDEN_DIM": 256,
+  "FREEZE_LAYERS": 4,
+  "EPOCHS": 7,
+  "BATCH_SIZE": 16
+}
