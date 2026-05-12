@@ -8,7 +8,7 @@ import torch.nn as nn
 import numpy as np
 from pathlib import Path
 from typing import Dict, Optional, Union
-from video_preprocessor import get_preprocessor
+from src.video.video_preprocessor import get_preprocessor
 
 
 class LSTMClassifier(nn.Module):
@@ -47,6 +47,8 @@ class VideoPredictor:
         "adhd":       {"input_dim": 2048, "max_len": 100},
         "ocd":        {"input_dim": 2048, "max_len": 100},
         "anxiety":    {"input_dim": 2048, "max_len": 100},
+        # NOTE: depression was trained with 168-dim features (not ResNet50 2048-dim).
+        # It will raise a shape mismatch at inference. The scheduler catches this gracefully.
         "depression": {"input_dim": 168,  "max_len": 1000}
     }
 

@@ -11,7 +11,7 @@ librosa
 praat-parselmouth
 noisereduce
 soundfile
-webrtcvad
+webrtcvad-wheels
 moviepy
 imbalanced-learn
 xgboost
@@ -25,3 +25,5 @@ pydub
 gdown
 apscheduler
 pymongo
+opencv-python
+torchvision

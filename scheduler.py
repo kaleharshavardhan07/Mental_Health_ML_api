@@ -30,7 +30,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from pymongo import MongoClient
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-MONGODB_URI        = os.environ.get("MONGODB_URI", "")
+MONGODB_URI="mongodb+srv://hashiman004:DMDh13da1fTDbyBY@clusterproject.ijackeq.mongodb.net/mental_health_db"
 DB_NAME            = "mental_health_db"
 COLLECTION_NAME    = "tests"
 POLL_INTERVAL_SECS = 60          # how often to poll MongoDB
@@ -105,6 +105,34 @@ def _mean_text_preds(preds: list) -> dict:
     return result
 
 
+def _mean_video_preds(preds: list) -> dict:
+    """
+    Average a list of video prediction dicts.
+    Each item from predict_all_diseases()["predictions"]:
+      { "depression": {"probability": float, "has_disorder": bool}, ... }
+    Returns same structure with averaged probabilities.
+    """
+    valid = [p for p in preds if p and isinstance(p, dict)]
+    if not valid:
+        return {}
+    all_diseases = set(d for p in valid for d in p)
+    result = {}
+    for disease in all_diseases:
+        probs = [
+            float(p[disease]["probability"])
+            for p in valid
+            if disease in p and p[disease].get("success", True)
+            and "probability" in p.get(disease, {})
+        ]
+        if probs:
+            mean_prob = round(float(np.mean(probs)), 4)
+            result[disease] = {
+                "probability": mean_prob,
+                "has_disorder": mean_prob >= 0.5,
+            }
+    return result
+
+
 # ── Single test processor ──────────────────────────────────────────────────────
 
 def _process_test(test: dict, col) -> None:
@@ -157,10 +185,19 @@ def _process_test(test: dict, col) -> None:
         except Exception as exc:
             print(f"  [Text]  ✗ Could not load predictor: {exc}")
 
+        video_predictor = None
+        try:
+            from src.video.video_predictor import VideoPredictor
+            video_predictor = VideoPredictor(model_dir="models/video_model")
+            print("  [Video] ✓ Predictor loaded")
+        except Exception as exc:
+            print(f"  [Video] ✗ Could not load predictor: {exc}")
+
         # ── 3. Per-video inference ────────────────────────────────────────────
         interview_questions = test.get("interviewQuestions", [])
         audio_preds = []
         text_preds  = []
+        video_preds = []
 
         for idx, iq in enumerate(interview_questions):
             video_url = iq.get("videoUrl", "")
@@ -212,6 +249,19 @@ def _process_test(test: dict, col) -> None:
                 except Exception as exc:
                     print(f"  [Text]  ✗ Q{q_id} error: {exc}")
 
+            # ── Video (facial/LSTM) model ─────────────────────────────────
+            if video_predictor:
+                try:
+                    vid_raw = video_predictor.predict_all_diseases(video_path)
+                    if vid_raw.get("success") and "predictions" in vid_raw:
+                        video_preds.append(vid_raw["predictions"])
+                        print(f"  [Video] ✓ Q{q_id}: predictions for "
+                              f"{list(vid_raw['predictions'].keys())}")
+                    else:
+                        print(f"  [Video] ✗ Q{q_id}: prediction failed")
+                except Exception as exc:
+                    print(f"  [Video] ✗ Q{q_id} error: {exc}")
+
             # Clean up downloaded video immediately to save disk space
             try:
                 Path(video_path).unlink(missing_ok=True)
@@ -225,16 +275,20 @@ def _process_test(test: dict, col) -> None:
         # ── 4. Compute means ──────────────────────────────────────────────────
         audio_result = _mean_audio_probs(audio_preds)
         text_result  = _mean_text_preds(text_preds)
+        video_result = _mean_video_preds(video_preds)
 
         print(f"\n  [Summary] Audio: {len(audio_preds)}/{len(interview_questions)} videos succeeded")
         print(f"  [Summary] Text:  {len(text_preds)}/{len(interview_questions)} videos succeeded")
+        print(f"  [Summary] Video: {len(video_preds)}/{len(interview_questions)} videos succeeded")
 
         ml_results["audio"] = audio_result
         ml_results["text"]  = text_result
+        ml_results["video"] = video_result
         ml_results["meta"]  = {
             "videoCount":    len(interview_questions),
             "audioSuccess":  len(audio_preds),
             "textSuccess":   len(text_preds),
+            "videoSuccess":  len(video_preds),
         }
 
         # ── 5. Write back to MongoDB ──────────────────────────────────────────

@@ -18,30 +18,34 @@ class MentalHealthClassifier(nn.Module):
                  num_classes: int = 4, freeze_layers: int = 4):
         super(MentalHealthClassifier, self).__init__()
         
-        # Load pre-trained DistilBERT
-        self.distilbert = DistilBertModel.from_pretrained(model_name)
+        # NOTE: attribute is 'bert' (not 'distilbert') to match saved checkpoint keys
+        self.bert = DistilBertModel.from_pretrained(model_name)
         
         # Freeze specified number of layers
         if freeze_layers > 0:
-            for param in self.distilbert.embeddings.parameters():
+            for param in self.bert.embeddings.parameters():
                 param.requires_grad = False
             for i in range(freeze_layers):
-                for param in self.distilbert.transformer.layer[i].parameters():
+                for param in self.bert.transformer.layer[i].parameters():
                     param.requires_grad = False
         
-        # Classification head
-        self.classifier = nn.Sequential(
-            nn.Linear(self.distilbert.config.hidden_size, hidden_dim),
+        # Classification head — must match checkpoint keys: head.1, head.2 (BatchNorm), head.5
+        # Sequential indices: 0=Dropout, 1=Linear, 2=BatchNorm1d, 3=ReLU, 4=Dropout, 5=Linear
+        self.head = nn.Sequential(
+            nn.Dropout(0.3),
+            nn.Linear(self.bert.config.hidden_size, hidden_dim),  # head.1
+            nn.BatchNorm1d(hidden_dim),                           # head.2
             nn.ReLU(),
             nn.Dropout(0.3),
-            nn.Linear(hidden_dim, num_classes)
+            nn.Linear(hidden_dim, num_classes)                    # head.5
         )
     
     def forward(self, input_ids, attention_mask):
-        outputs = self.distilbert(input_ids=input_ids, attention_mask=attention_mask)
+        outputs = self.bert(input_ids=input_ids, attention_mask=attention_mask)
         pooled_output = outputs.last_hidden_state[:, 0, :]  # [CLS] token
-        logits = self.classifier(pooled_output)
+        logits = self.head(pooled_output)
         return logits
+
 
 
 class TextPredictor:
