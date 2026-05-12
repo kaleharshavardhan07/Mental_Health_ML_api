@@ -29,15 +29,17 @@ class MentalHealthClassifier(nn.Module):
                 for param in self.bert.transformer.layer[i].parameters():
                     param.requires_grad = False
         
-        # Classification head — must match checkpoint keys: head.1, head.2 (BatchNorm), head.5
-        # Sequential indices: 0=Dropout, 1=Linear, 2=BatchNorm1d, 3=ReLU, 4=Dropout, 5=Linear
+        # Classification head — must match checkpoint structure:
+        # Based on saved checkpoint: head.1 (LayerNorm), head.2 (Linear), head.5 (Linear)
+        # Sequential indices: 0=Dropout, 1=LayerNorm, 2=Linear, 3=ReLU, 4=Dropout, 5=Linear
+        dim = self.bert.config.hidden_size  # 768
         self.head = nn.Sequential(
             nn.Dropout(0.3),
-            nn.Linear(self.bert.config.hidden_size, hidden_dim),  # head.1
-            nn.BatchNorm1d(hidden_dim),                           # head.2
+            nn.LayerNorm(dim),                           # head.1 (LayerNorm with weight/bias [768])
+            nn.Linear(dim, hidden_dim),                  # head.2 (Linear [256, 768])
             nn.ReLU(),
             nn.Dropout(0.3),
-            nn.Linear(hidden_dim, num_classes)                    # head.5
+            nn.Linear(hidden_dim, num_classes)           # head.5 (Linear [4, 256])
         )
     
     def forward(self, input_ids, attention_mask):
