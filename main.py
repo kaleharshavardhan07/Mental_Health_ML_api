@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.responses import JSONResponse
 import uvicorn
@@ -28,10 +29,20 @@ except Exception as e:
     text_model_predict = None
     extract_video_text = None
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Start ML pipeline scheduler on startup; shut it down on exit."""
+    from scheduler import start_scheduler
+    _scheduler = start_scheduler()
+    yield
+    _scheduler.shutdown(wait=False)
+    print("[Scheduler] Shut down.")
+
 app = FastAPI(
     title="Mental Health ML Model API",
     description="FastAPI backend for predicting mental health outcomes from audio/video/text/mcq",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 # --- Pydantic Models for JSON Requests ---

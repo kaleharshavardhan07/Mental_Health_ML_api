@@ -23,3 +23,5 @@ transformers
 SpeechRecognition
 pydub
 gdown
+apscheduler
+pymongo
