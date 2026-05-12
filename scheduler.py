@@ -330,7 +330,11 @@ def run_scheduler_job():
     client = None
     try:
         client, col = _get_collection()
-        pending = list(col.find({"mlExecutionStatus": "in_progress"}))
+        pending = list(col.find({
+            "mlExecutionStatus":   "in_progress",
+            "mcqCompleted":        True,
+            "subjectiveCompleted": True,
+        }))
         print(f"[Scheduler] Found {len(pending)} test(s) to process.")
 
         for test in pending:
