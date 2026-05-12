@@ -19,13 +19,12 @@ except Exception as e:
     predictor = None
 
 try:
-    from src.text import get_predictor as get_text_predictor
     from src.text.predict import predict as text_model_predict
     from src.text.video_to_text import extract_text_from_video as extract_video_text
-    text_predictor = get_text_predictor()
+    # NOTE: Do NOT call get_predictor() here — model loads lazily on first request
+    # to avoid blocking uvicorn port binding on Render (port scan timeout).
 except Exception as e:
-    print(f"Failed to load text model: {e}")
-    text_predictor = None
+    print(f"Failed to import text model: {e}")
     text_model_predict = None
     extract_video_text = None
 
